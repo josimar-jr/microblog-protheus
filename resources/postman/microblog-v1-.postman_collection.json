@@ -1,0 +1,356 @@
+{
+	"info": {
+		"_postman_id": "a726bb36-ad96-431f-b4e9-54314b21f8bb",
+		"name": "microblog/v1/",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "gerais",
+			"item": [
+				{
+					"name": "/healthcheck",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "647fd98e-d195-4e3d-82b6-68dcc1fb5a8f",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Status está com valor ok\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(\"ok\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/healthcheck/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"healthcheck",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/shiftf6",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b0290449-6ff1-4af7-833b-b5f6042ee140",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/shiftf6/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"shiftf6",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "38bd4982-a1f8-4105-aab6-876345af4f5a",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "305d7461-923f-4612-9afa-1bad5eecfe28",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Perfis",
+			"item": [
+				{
+					"name": "/microblog/v1/perfis",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4804610e-2ed2-47aa-ae4b-74e2d8841ab2",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 201\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - lista",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "85a35a17-2b25-4cc0-8036-9bce41c2f9a8",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "66a64790-e7d2-480b-a241-55be52f99385",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "000001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5ac63286-2b75-48b8-bf69-61ff2980b9b2",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "000001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1060ab23-5761-44ab-ad09-1b5d4319e433",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "000001"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "password",
+				"value": "senha!forte!",
+				"type": "string"
+			},
+			{
+				"key": "username",
+				"value": "admin",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "a94f04b4-3e21-40d7-861b-b368b576fa76",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "a7ecd3e7-fb15-4493-8001-b603b2401bfe",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
