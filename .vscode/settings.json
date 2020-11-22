@@ -1,0 +1,35 @@
+{
+    "files.encoding": "windows1252",
+    "files.trimTrailingWhitespace": true,
+    "editor.renderWhitespace": "all",
+    "editor.trimAutoWhitespace": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "advpl.environments": [
+        {
+            "name": "p12microblog",
+            "environment": "p12microblog",
+            "language": "PORTUGUESE",
+            "smartClientPath": "C:\\Especif\\Protheus12\\microblog\\bin\\smartclient\\",
+            "includeList": "C:\\advpl_outros\\protheus_microblog\\rest-server\\resources\\includes_padrao\\;C:\\advpl_outros\\protheus_microblog\\rest-server\\resources\\includes\\",
+            "rpoType": "TOP",
+            "serverVersion": "191205P",
+            "ssl": false,
+            "server": "localhost",
+            "port": "15334",
+            "user": "admin",
+            "passwordCipher": "NmdJcHVyaWs5VEV2ZkRVQzdERXQraGZWd0ZHTTJqMmFDVEh1ZEFLNW5hVnpzdjBLRWZhMW5NNkVIM1FNWVh6NzVCVTN0WnFqeFlnNHZ0T0dlY1BzclpiNm9uRkhsUGNYalZPUVQxeGFBWEh5N1BFUkROQ2I4Z3lRN1luRHFjbW4="
+        }
+    ],
+    "advpl.compileFolderRegex": ".*\\.(prw|prx|prg|apw|aph|tlpp|png|bmp|tres|js|html|app)",
+    "advpl.pathPatchBuild": "c:\\patches\\",
+    "advpl.debug_multiThread": false,
+    "advpl.enableCoverage": false,
+    "advpl.debug_ignoreSourceNotFound": false,
+    "advpl.debug_showTables": true,
+    "advpl.debug_showPrivates": false,
+    "advpl.debug_showPublic": false,
+    "advpl.debug_showStatics": false,
+    "advpl.compile_force_recompile": true,
+    "advpl.selectedEnvironment": "p12microblog"
+}
