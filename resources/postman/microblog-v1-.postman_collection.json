@@ -128,7 +128,73 @@
 					],
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"drica@email.com\",\r\n    \"user_id\": \"000004\",\r\n    \"name\": \"Drica\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - body incompleto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7eddba59-064e-4645-9d72-f43b0685d6f8",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"isaac@email.com\",\r\n    \"user_id\": \"000001\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:18085/rest/microblog/v1/perfis",
 							"protocol": "http",
@@ -164,9 +230,15 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "http://localhost:18085/rest/microblog/v1/perfis",
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis?page=1&pageSize=7",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -177,6 +249,16 @@
 								"microblog",
 								"v1",
 								"perfis"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "7"
+								}
 							]
 						}
 					},
@@ -200,7 +282,120 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "000003"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não encontrado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9c1669df-4822-4384-9850-cca888fa8866",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5ac63286-2b75-48b8-bf69-61ff2980b9b2",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Isaac - alterado\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
 							"protocol": "http",
@@ -226,15 +421,15 @@
 					"response": []
 				},
 				{
-					"name": "/microblog/v1/perfis - um item",
+					"name": "/microblog/v1/perfis - um item não encontrado",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "5ac63286-2b75-48b8-bf69-61ff2980b9b2",
+								"id": "f7e9d6b8-e22b-4f7b-8c84-13eaf963d6d1",
 								"exec": [
-									"pm.test(\"Resposta da requisição é 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
 									"});"
 								],
 								"type": "text/javascript"
@@ -243,7 +438,80 @@
 					],
 					"request": {
 						"method": "PUT",
-						"header": [],
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Isaac - alterado\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item body invalido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0d35db89-6c31-4927-b727-b1e5e2717ea8",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name_\": \"Isaac - alterado\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
 							"protocol": "http",
@@ -286,7 +554,13 @@
 					],
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
 							"protocol": "http",
@@ -304,7 +578,105 @@
 							"variable": [
 								{
 									"key": "id",
-									"value": "000001"
+									"value": "000002"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não existente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a2302ee-ef57-495a-a020-3dbea655acff",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não existente vazio \"\"",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "90043b83-1f23-44a2-bb0c-72224081e756",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "          "
 								}
 							]
 						}
