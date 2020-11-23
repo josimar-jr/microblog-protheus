@@ -10,18 +10,18 @@
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsRestful Perfis Description "Trata a atualização dos perfis que usam o microblog"
-    WsData pageSize         as integer optional
-    WsData page             as integer optional
-    WsData perfilId         as character optional
+wsrestful Perfis description "Trata a atualização dos perfis que usam o microblog"
+    wsdata pageSize         as integer optional
+    wsdata page             as integer optional
+    wsdata perfilId         as character optional
 
-    WsMethod GET V1ALL Description "Recupera todos os perfis" Path "/microblog/v1/perfis"
-    WsMethod GET V1ID Description "Recupera um perfil pelo id" Path "/microblog/v1/perfis/{perfilId}"
+    wsmethod GET V1ALL Description "Recupera todos os perfis" Path "/microblog/v1/perfis"
+    wsmethod GET V1ID Description "Recupera um perfil pelo id" Path "/microblog/v1/perfis/{perfilId}"
 
-    WsMethod POST V1ROOT Description "Cria um perfil para o microblog" Path "/microblog/v1/perfis"
-    WsMethod PUT V1ID Description "Faz a atualização de um perfil" Path "/microblog/v1/perfis/{perfilId}"
-    WsMethod DELETE V1 Description "Faz a exclusão de um perfil" Path "/microblog/v1/perfis/{perfilId}"
-End WsRestful
+    wsmethod POST V1ROOT Description "Cria um perfil para o microblog" Path "/microblog/v1/perfis"
+    wsmethod PUT V1ID Description "Faz a atualização de um perfil" Path "/microblog/v1/perfis/{perfilId}"
+    wsmethod DELETE V1 Description "Faz a exclusão de um perfil" Path "/microblog/v1/perfis/{perfilId}"
+end wsrestful
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} GET
@@ -32,23 +32,40 @@ End WsRestful
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsMethod GET V1ALL WsReceive page, pageSize WsService Perfis
+wsmethod GET V1ALL wsreceive page, pageSize wsservice Perfis
     local lProcessed as logical
+    local jResponse  as object
+    local jTempItem  as object
     lProcessed := .T.
 
     // Define o tipo de retorno do método
-    ::SetContentType("application/json")
+    self:SetContentType("application/json")
 
     // As propriedades da classe receberão os valores enviados por querystring
     // exemplo: http://localhost:18085/rest/microblog/v1/perfis?page=1&pageSize=5
-    DEFAULT ::page := 1, ::pageSize := 5
+    default self:page := 1
+    default self:pageSize := 5
+
+    DbSelectArea("ZT0")
+    DbSetOrder(3) // ZT0_FILIAL+ZT0_NOME
+    DbSeek(xFilial("ZT0"))
 
     // exemplo de retorno de uma lista de objetos JSON
-    ::SetResponse('[')
-    ::SetResponse('{"id": "value1"},')
-    ::SetResponse('{"id": "value2"},')
-    ::SetResponse('{"id": "value3"}')
-    ::SetResponse(']')
+    jResponse := JsonObject():New()
+    jResponse['items'] := {}
+    while ZT0->(!EOF())
+        aAdd(jResponse['items'], JsonObject():New())
+        jTempItem := aTail(jResponse['items'])
+
+        jTempItem["email"]   := ZT0->ZT0_EMAIL
+        jTempItem["user_id"] := ZT0->ZT0_USRID
+        jTempItem["name"]    := ZT0->ZT0_NOME
+        // jTempItem["inserted_at"] := ZT0->S_T_A_M_P_
+        // jTempItem["updated_at"] := ZT0->I_N_S_D_T_
+        ZT0->(DbSkip())
+    end
+
+    self:SetResponse(jResponse:ToJson())
 return lProcessed
 
 //-------------------------------------------------------------------
@@ -60,12 +77,39 @@ return lProcessed
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsMethod GET V1ID PathParam perfilId WsService Perfis
+wsmethod GET V1ID pathparam perfilId wsservice Perfis
     local lProcessed as logical
+    local jResponse  as object
+
     lProcessed := .T.
-    ::SetContentType("application/json")
-    ::SetResponse('{"id": "' + self:perfilId + '"}')
-Return lProcessed
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
+    if lProcessed
+
+        jResponse["email"]   := ZT0->ZT0_EMAIL
+        jResponse["user_id"] := ZT0->ZT0_USRID
+        jResponse["name"]    := ZT0->ZT0_NOME
+        // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+        // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+        self:SetResponse(jResponse:ToJson())
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} POST V1ROOT
@@ -76,12 +120,45 @@ Return lProcessed
 @since  22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsMethod POST V1ROOT WsService Perfis
+wsmethod POST V1ROOT wsservice Perfis
     local lProcessed as logical
+    local jBody      as object
+    local jResponse  as object
+
     lProcessed := .T.
-    ::SetContentType("application/json")
-    ::SetResponse('{"id": "id_post"}')
-Return lProcessed
+    self:SetContentType("application/json")
+
+    jBody := JsonObject():New()
+    jBody:FromJson(self:GetContent())
+
+    jResponse := JsonObject():New()
+
+    if (jBody["email"] == Nil .Or. jBody["user_id"] == Nil .Or. jBody["name"] == Nil)
+        jResponse["error"] := "body_invalido"
+        jResponse["description"] := "Forneça as propriedades 'email', 'user_id' e 'name' no body"
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(400, jResponse:ToJson(), , 400)
+        lProcessed := .F.
+    else
+        DBSelectArea("ZT0")
+        Reclock("ZT0", .T.)
+            ZT0->ZT0_FILIAL := xFilial("ZT0")
+            ZT0->ZT0_EMAIL  := jBody["email"]
+            ZT0->ZT0_USRID  := jBody["user_id"]
+            ZT0->ZT0_NOME   := jBody["name"]
+        ZT0->(MsUnlock())
+
+        jResponse["email"]   := ZT0->ZT0_EMAIL
+        jResponse["user_id"] := ZT0->ZT0_USRID
+        jResponse["name"]    := ZT0->ZT0_NOME
+        // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+        // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+        self:SetResponse(jResponse:ToJson())
+    endif
+
+return lProcessed
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} PUT V1ID
@@ -92,12 +169,56 @@ Return lProcessed
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsMethod PUT V1ID PathParam perfilId WsService Perfis
+wsmethod PUT V1ID pathparam perfilId wsservice Perfis
     local lProcessed as logical
+    local jResponse  as object
+
     lProcessed := .T.
-    ::SetContentType("application/json")
-    ::SetResponse('{"id": "' + self:perfilId + '"}')
-Return lProcessed
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
+    if lProcessed
+
+        jBody := JsonObject():New()
+        jBody:FromJson(self:GetContent())
+
+        if (jBody["name"] == Nil)
+            jResponse["error"] := "body_invalido"
+            jResponse["description"] := "Forneça a propriedade 'name' no body"
+
+            self:SetResponse(jResponse:ToJson())
+            SetRestFault(400, jResponse:ToJson(), , 400)
+            lProcessed := .F.
+        else
+
+            Reclock("ZT0", .F.)
+                ZT0->ZT0_NOME   := jBody["name"]
+            ZT0->(MsUnlock())
+
+            jResponse["email"]   := ZT0->ZT0_EMAIL
+            jResponse["user_id"] := ZT0->ZT0_USRID
+            jResponse["name"]    := ZT0->ZT0_NOME
+            // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+            // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+            self:SetResponse(jResponse:ToJson())
+        endif
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} DELETE V1
@@ -108,9 +229,40 @@ Return lProcessed
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-WsMethod DELETE V1 PathParam perfilId WsService Perfis
+wsmethod DELETE V1 pathparam perfilId wsservice Perfis
     local lProcessed as logical
+    local lDelete    as logical
+    local jResponse  as object
+
     lProcessed := .T.
-    ::SetContentType("application/json")
-    ::SetResponse('{}')
-Return lProcessed
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    varinfo("id", self:perfilId)
+    lProcessed := !(Alltrim(self:perfilId) == "")
+    if lProcessed
+
+        // Se não encontrar o registro, não faz nada e retorna verdadeiro
+        lDelete := ZT0->(DbSeek(xFilial("ZT0")+self:perfilId))
+        if lDelete
+            Reclock("ZT0", .F.)
+                DbDelete()
+            ZT0->(MsUnlock())
+        endif
+
+        self:SetResponse("{}")
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
