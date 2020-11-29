@@ -15,12 +15,12 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsdata page             as integer optional
     wsdata perfilId         as character optional
 
-    wsmethod GET V1ALL Description "Recupera todos os perfis" Path "/microblog/v1/perfis"
-    wsmethod GET V1ID Description "Recupera um perfil pelo id" Path "/microblog/v1/perfis/{perfilId}"
+    wsmethod GET V1ALL description "Recupera todos os perfis" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
+    wsmethod POST V1ROOT description "Cria um perfil para o microblog" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
 
-    wsmethod POST V1ROOT Description "Cria um perfil para o microblog" Path "/microblog/v1/perfis"
-    wsmethod PUT V1ID Description "Faz a atualização de um perfil" Path "/microblog/v1/perfis/{perfilId}"
-    wsmethod DELETE V1 Description "Faz a exclusão de um perfil" Path "/microblog/v1/perfis/{perfilId}"
+    wsmethod GET V1ID description "Recupera um perfil pelo id" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
+    wsmethod PUT V1ID description "Faz a atualização de um perfil" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
+    wsmethod DELETE V1 description "Faz a exclusão de um perfil" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
 end wsrestful
 
 //-------------------------------------------------------------------
