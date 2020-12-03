@@ -235,6 +235,18 @@
 								"key": "Accept",
 								"value": "application/json; charset=utf-8",
 								"type": "text"
+							},
+							{
+								"key": "page",
+								"value": "1",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "pageSize",
+								"value": "8",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -682,6 +694,795 @@
 						}
 					},
 					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Perfis /fwmodel/ - publicação modelo mvc",
+			"item": [
+				{
+					"name": "perfis  MVC - estrutura",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a7f476e1-7299-4410-9ef9-defce814ccf2",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/xml; "
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/schema",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								"schema"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "perfis  MVC - formato do body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0d9317fa-9936-4900-b30e-d44a8f200868",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/xml; "
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/xmldata",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								"xmldata"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "perfis  MVC - formato detalhado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "10e955fe-1f7f-4703-a3b0-22e90414d07d",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/xml; "
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/Perfis/xmldatadetail",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"Perfis",
+								"xmldatadetail"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9b7a58b1-5c82-44fc-b098-b1f56544a046",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 201\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"ZMBMODEL\",\r\n    \"operation\": 3,\r\n    \"models\": [\r\n        {\r\n            \"id\": \"ZT0_FIELDS\",\r\n            \"modeltype\": \"FIELDS\",\r\n            \"fields\": [\r\n                {\r\n                    \"id\": \"ZT0_USRID\",\r\n                    \"order\": 2,\r\n                    \"value\": \"000007\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_EMAIL\",\r\n                    \"order\": 3,\r\n                    \"value\": \"klaus@email.com\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_NOME\",\r\n                    \"order\": 4,\r\n                    \"value\": \"Klaus\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - body incompleto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8745bf9b-f3d3-4f04-bb31-a5b97a0f25f3",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"ZMBMODEL\",\r\n    \"operation\": 3,\r\n    \"models\": [\r\n        {\r\n            \"id\": \"ZT0_FIELDS\",\r\n            \"modeltype\": \"FIELDS\",\r\n            \"fields\": [\r\n                {\r\n                    \"id\": \"ZT0_EMAIL\",\r\n                    \"order\": 3,\r\n                    \"value\": \"nico@email.com\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_NOME\",\r\n                    \"order\": 4,\r\n                    \"value\": \"Nico\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - lista",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d337c7bb-721e-4a88-b936-d832cd92dd06",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis"
+							],
+							"query": [
+								{
+									"key": "count",
+									"value": "3",
+									"disabled": true
+								},
+								{
+									"key": "startindex",
+									"value": "2",
+									"disabled": true
+								},
+								{
+									"key": "fields",
+									"value": "ZT0_NOME,ZT0_EMAIL",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "ZT0_USRID = '000001'",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "fd21f068-5596-498a-8696-34072671c27b",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ICAwMDAwMDY="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item campos limitados",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "dea48f61-6f27-47e0-8a24-7b99331e9680",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id?fields=ZT0_NOME,ZT0_EMAIL&internalId=true",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "ZT0_NOME,ZT0_EMAIL"
+								},
+								{
+									"key": "internalId",
+									"value": "true"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ICAwMDAwMDI="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não encontrado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "33e2b096-8f97-4f6d-93d0-bea51e653b1d",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "687fb87e-5887-4a5d-960e-e664a2d323ff",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"ZMBMODEL\",\r\n    \"operation\": 4,\r\n    \"pk\": \"ICAwMDAwMDY=\",\r\n    \"models\": [\r\n        {\r\n            \"id\": \"ZT0_FIELDS\",\r\n            \"modeltype\": \"FIELDS\",\r\n            \"fields\": [\r\n                {\r\n                    \"id\": \"ZT0_USRID\",\r\n                    \"order\": 2,\r\n                    \"value\": \"000006\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_EMAIL\",\r\n                    \"order\": 3,\r\n                    \"value\": \"bruno@email.com\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_NOME\",\r\n                    \"order\": 4,\r\n                    \"value\": \"Bruno\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ICAwMDAwMDY="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não encontrado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "998d1330-5944-4946-9cb7-7fbc771141eb",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"ZMBMODEL\",\r\n    \"operation\": 4,\r\n    \"models\": [\r\n        {\r\n            \"id\": \"ZT0_FIELDS\",\r\n            \"modeltype\": \"FIELDS\",\r\n            \"fields\": [\r\n                {\r\n                    \"id\": \"ZT0_EMAIL\",\r\n                    \"order\": 3,\r\n                    \"value\": \"nico@email.com\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_NOME\",\r\n                    \"order\": 4,\r\n                    \"value\": \"Nico\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item body invalido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "28917a41-11e4-4716-88e0-03a6f4450022",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"ZMBMODEL\",\r\n    \"operation\": 4,\r\n    \"models\": [\r\n        {\r\n            \"id\": \"ZT0_FIELDS\",\r\n            \"modeltype\": \"FIELDS\",\r\n            \"fields\": [\r\n                {\r\n                    \"id\": \"ZT0_USRID\",\r\n                    \"order\": 2,\r\n                    \"value\": \"000006\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_EMAIL\",\r\n                    \"order\": 3,\r\n                    \"value\": \"bruno@email.com\"\r\n                },\r\n                {\r\n                    \"id\": \"ZT0_NOME\",\r\n                    \"order\": 4,\r\n                    \"value\": \"\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ICAwMDAwMDY="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2a4f2390-bc1a-4a55-b543-590515989c8c",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json; charset=utf-8",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/fwmodel/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"fwmodel",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ICAwMDAwMDc="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não existente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "592ee035-d807-42c4-adec-1906f6402806",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "xxxxxxxxx"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/microblog/v1/perfis - um item não existente vazio \"\"",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ba6f5a00-b7d9-47ad-b5bb-82d52e2d6722",
+								"exec": [
+									"pm.test(\"Resposta da requisição é 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json; charset=utf-8"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:18085/rest/microblog/v1/perfis/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "18085",
+							"path": [
+								"rest",
+								"microblog",
+								"v1",
+								"perfis",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "          "
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "aaa88d2b-7c59-4555-897b-8a77f0c81c83",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "17a2b8cf-a47c-4cf3-b67d-44d7262901bb",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
 				}
 			],
 			"protocolProfileBehavior": {}
