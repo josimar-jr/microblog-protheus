@@ -436,18 +436,36 @@ wsmethod PUT V2ID pathparam perfilId wsservice Perfis
             SetRestFault(400, jResponse:ToJson(), , 400)
             lProcessed := .F.
         else
+            // Chama uma função que garante um único do modelo
+            oModel := GetMyModel()
 
-            Reclock("ZT0", .F.)
-                ZT0->ZT0_NOME   := jBody["name"]
-            ZT0->(MsUnlock())
+            oModel:SetOperation(MODEL_OPERATION_UPDATE)
 
-            jResponse["email"]   := ZT0->ZT0_EMAIL
-            jResponse["user_id"] := ZT0->ZT0_USRID
-            jResponse["name"]    := ZT0->ZT0_NOME
-            // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
-            // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+            lProcessed := oModel:Activate()
+            oZT0Header := oModel:GetModel("ZT0_FIELDS")
 
-            self:SetResponse(jResponse:ToJson())
+            // Somente atualiza o campo ZT0_NOME
+            lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_NOME"  , jBody["name"])
+
+            lProcessed := lProcessed .And. oModel:VldData() .And. oModel:CommitData()
+            if lProcessed
+
+                jResponse["email"]   := oZT0Header:GetValue("ZT0_EMAIL")
+                jResponse["user_id"] := oZT0Header:GetValue("ZT0_USRID")
+                jResponse["name"]    := oZT0Header:GetValue("ZT0_NOME")
+                // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+                // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+                self:SetResponse(jResponse:ToJson())
+            else
+                aError := oModel:GetErrorMessage()
+                jResponse["error"] := "creation_failed"
+                jResponse["description"] := aError[MODEL_MSGERR_MESSAGE]
+                self:SetResponse(jResponse:ToJson())
+                SetRestFault(400, jResponse:ToJson(), , 400)
+            endif
+
+            oModel:DeActivate()
         endif
     else
         jResponse["error"] := "id_invalido"
