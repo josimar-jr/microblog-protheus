@@ -1,5 +1,8 @@
 #include "protheus.ch"
 #include "restful.ch"
+#include "fwmvcdef.ch"
+
+static _oModelDef := Nil
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} perfis
@@ -21,10 +24,18 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsmethod GET V1ID description "Recupera um perfil pelo id" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
     wsmethod PUT V1ID description "Faz a atualização de um perfil" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
     wsmethod DELETE V1 description "Faz a exclusão de um perfil" wssyntax "/microblog/v1/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
+
+    // versões 2 - utilizam modelo nos processos de gravação
+    wsmethod POST V2ROOT description "Cria um perfil para o microblog usando modelo MVC" wssyntax "/microblog/v2/perfis" path "/microblog/v2/perfis"
+
+    wsmethod GET V2ID description "Recupera um perfil pelo id usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
+    wsmethod PUT V2ID description "Faz a atualização de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
+    wsmethod DELETE V2 description "Faz a exclusão de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
+
 end wsrestful
 
 //-------------------------------------------------------------------
-/*/{Protheus.doc} GET
+/*/{Protheus.doc} GET V1ALL
     Recupera todos os perfis
 @type    method
 
@@ -266,3 +277,237 @@ wsmethod DELETE V1 pathparam perfilId wsservice Perfis
     endif
 
 return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GET V2ID
+    Recupera um perfil pelo id usando modelo MVC
+@type    method
+
+@author  josimar.assuncao
+@since   04.12.2020
+/*/
+//-------------------------------------------------------------------
+wsmethod GET V2ID pathparam perfilId wsservice Perfis
+    local lProcessed as logical
+    local jResponse  as object
+
+    lProcessed := .T.
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
+    if lProcessed
+
+        jResponse["email"]   := ZT0->ZT0_EMAIL
+        jResponse["user_id"] := ZT0->ZT0_USRID
+        jResponse["name"]    := ZT0->ZT0_NOME
+        // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+        // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+        self:SetResponse(jResponse:ToJson())
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} POST V2ROOT
+    Cria um perfil para o microblog usando MVC
+@type   method
+
+@author josimar.assuncao
+@since  04.12.2020
+/*/
+//-------------------------------------------------------------------
+wsmethod POST V2ROOT wsservice Perfis
+    local lProcessed as logical
+    local jBody      as object
+    local jResponse  as object
+    local oModel     as object
+    Local oZT0Header as object
+    local aError     as array
+
+    lProcessed := .T.
+    self:SetContentType("application/json")
+
+    jBody := JsonObject():New()
+    jBody:FromJson(self:GetContent())
+
+    jResponse := JsonObject():New()
+
+    if (jBody["email"] == Nil .Or. jBody["user_id"] == Nil .Or. jBody["name"] == Nil)
+        jResponse["error"] := "body_invalido"
+        jResponse["description"] := "Forneça as propriedades 'email', 'user_id' e 'name' no body"
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(400, jResponse:ToJson(), , 400)
+        lProcessed := .F.
+    else
+        // Chama uma função que garante um único do modelo
+        oModel := GetMyModel()
+
+        oModel:SetOperation(MODEL_OPERATION_INSERT)
+
+        lProcessed := oModel:Activate()
+        oZT0Header := oModel:GetModel("ZT0_FIELDS")
+
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_EMAIL" , jBody["email"])
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_USRID" , jBody["user_id"])
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_NOME"  , jBody["name"])
+
+        lProcessed := lProcessed .And. oModel:VldData() .And. oModel:CommitData()
+
+        if lProcessed
+            jResponse["email"]   := oZT0Header:GetValue("ZT0_EMAIL")
+            jResponse["user_id"] := oZT0Header:GetValue("ZT0_USRID")
+            jResponse["name"]    := oZT0Header:GetValue("ZT0_NOME")
+            // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+            // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+            self:SetResponse(jResponse:ToJson())
+        else
+            aError := oModel:GetErrorMessage()
+            jResponse["error"] := "creation_failed"
+            jResponse["description"] := aError[MODEL_MSGERR_MESSAGE]
+            self:SetResponse(jResponse:ToJson())
+            SetRestFault(400, jResponse:ToJson(), , 400)
+        endif
+
+        oModel:DeActivate()
+    endif
+
+return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} PUT V2ID
+    Faz a atualização de um perfil usando MVC
+@type    method
+
+@author  josimar.assuncao
+@since   04.12.2020
+/*/
+//-------------------------------------------------------------------
+wsmethod PUT V2ID pathparam perfilId wsservice Perfis
+    local lProcessed as logical
+    local jResponse  as object
+
+    lProcessed := .T.
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
+    if lProcessed
+
+        jBody := JsonObject():New()
+        jBody:FromJson(self:GetContent())
+
+        if (jBody["name"] == Nil)
+            jResponse["error"] := "body_invalido"
+            jResponse["description"] := "Forneça a propriedade 'name' no body"
+
+            self:SetResponse(jResponse:ToJson())
+            SetRestFault(400, jResponse:ToJson(), , 400)
+            lProcessed := .F.
+        else
+
+            Reclock("ZT0", .F.)
+                ZT0->ZT0_NOME   := jBody["name"]
+            ZT0->(MsUnlock())
+
+            jResponse["email"]   := ZT0->ZT0_EMAIL
+            jResponse["user_id"] := ZT0->ZT0_USRID
+            jResponse["name"]    := ZT0->ZT0_NOME
+            // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
+            // jResponse["updated_at"] := ZT0->I_N_S_D_T_
+
+            self:SetResponse(jResponse:ToJson())
+        endif
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} DELETE V2
+    Faz a exclusão de um perfil usando MVC
+@type    method
+
+@author  josimar.assuncao
+@since   04.12.2020
+/*/
+//-------------------------------------------------------------------
+wsmethod DELETE V2 pathparam perfilId wsservice Perfis
+    local lProcessed as logical
+    local lDelete    as logical
+    local jResponse  as object
+
+    lProcessed := .T.
+    self:SetContentType("application/json")
+
+    DbSelectArea("ZT0")
+    DbSetOrder(2) // ZT0_FILIAL+ZT0_USRID
+
+    jResponse := JsonObject():New()
+
+    // Id não ser vazio e existir como item na tabela
+    varinfo("id", self:perfilId)
+    lProcessed := !(Alltrim(self:perfilId) == "")
+    if lProcessed
+
+        // Se não encontrar o registro, não faz nada e retorna verdadeiro
+        lDelete := ZT0->(DbSeek(xFilial("ZT0")+self:perfilId))
+        if lDelete
+            Reclock("ZT0", .F.)
+                DbDelete()
+            ZT0->(MsUnlock())
+        endif
+
+        self:SetResponse("{}")
+    else
+        jResponse["error"] := "id_invalido"
+        jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
+
+        self:SetResponse(jResponse:ToJson())
+        SetRestFault(404, jResponse:ToJson(), , 404)
+        lProcessed := .F.
+    endif
+
+return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GetMyModel
+    Função para carregar uma vez na thread o modelo de dados
+@type    method
+
+@author  josimar.assuncao
+@since   04.12.2020
+/*/
+//-------------------------------------------------------------------
+static function GetMyModel()
+
+    if _oModelDef == nil
+        _oModelDef := FwLoadModel("ZMBA010")
+    endif
+return _oModelDef
