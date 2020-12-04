@@ -290,6 +290,8 @@ return lProcessed
 wsmethod GET V2ID pathparam perfilId wsservice Perfis
     local lProcessed as logical
     local jResponse  as object
+    local oModel     as object
+    local oZT0Header as object
 
     lProcessed := .T.
     self:SetContentType("application/json")
@@ -301,11 +303,18 @@ wsmethod GET V2ID pathparam perfilId wsservice Perfis
 
     // Id não ser vazio e existir como item na tabela
     lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
-    if lProcessed
 
-        jResponse["email"]   := ZT0->ZT0_EMAIL
-        jResponse["user_id"] := ZT0->ZT0_USRID
-        jResponse["name"]    := ZT0->ZT0_NOME
+    oModel := GetMyModel()
+    oModel:SetOperation(MODEL_OPERATION_VIEW)
+
+    lProcessed := oModel:Activate()
+
+    if lProcessed
+        oZT0Header := oModel:GetModel("ZT0_FIELDS")
+
+        jResponse["email"]   := oZT0Header:GetValue("ZT0_EMAIL")
+        jResponse["user_id"] := oZT0Header:GetValue("ZT0_USRID")
+        jResponse["name"]    := oZT0Header:GetValue("ZT0_NOME")
         // jResponse["inserted_at"] := ZT0->S_T_A_M_P_
         // jResponse["updated_at"] := ZT0->I_N_S_D_T_
 
@@ -318,6 +327,8 @@ wsmethod GET V2ID pathparam perfilId wsservice Perfis
         SetRestFault(404, jResponse:ToJson(), , 404)
         lProcessed := .F.
     endif
+
+    oModel:DeActivate()
 
 return lProcessed
 
