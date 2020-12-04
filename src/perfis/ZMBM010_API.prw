@@ -30,7 +30,7 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
 
     wsmethod GET V2ID description "Recupera um perfil pelo id usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
     wsmethod PUT V2ID description "Faz a atualização de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
-    wsmethod DELETE V2 description "Faz a exclusão de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v1/perfis/{perfilId}"
+    wsmethod DELETE V2 description "Faz a exclusão de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
 
 end wsrestful
 
@@ -412,6 +412,9 @@ return lProcessed
 wsmethod PUT V2ID pathparam perfilId wsservice Perfis
     local lProcessed as logical
     local jResponse  as object
+    local oModel     as object
+    local oZT0Header as object
+    local aError     as array
 
     lProcessed := .T.
     self:SetContentType("application/json")
@@ -491,6 +494,8 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
     local lProcessed as logical
     local lDelete    as logical
     local jResponse  as object
+    local oModel     as object
+    local aError     as array
 
     lProcessed := .T.
     self:SetContentType("application/json")
@@ -501,19 +506,31 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
     jResponse := JsonObject():New()
 
     // Id não ser vazio e existir como item na tabela
-    varinfo("id", self:perfilId)
     lProcessed := !(Alltrim(self:perfilId) == "")
     if lProcessed
 
-        // Se não encontrar o registro, não faz nada e retorna verdadeiro
         lDelete := ZT0->(DbSeek(xFilial("ZT0")+self:perfilId))
         if lDelete
-            Reclock("ZT0", .F.)
-                DbDelete()
-            ZT0->(MsUnlock())
+            oModel := GetMyModel()
+
+            oModel:SetOperation(MODEL_OPERATION_DELETE)
+            lProcessed := oModel:Activate()
+
+            // Se não encontrar o registro, não faz nada e retorna verdadeiro
+            lProcessed := lProcessed .And. oModel:VldData() .And. oModel:CommitData()
+
+            oModel:DeActivate()
         endif
 
-        self:SetResponse("{}")
+        if lProcessed
+            self:SetResponse("{}")
+        else
+            aError := oModel:GetErrorMessage()
+            jResponse["error"] := "deletion_failed"
+            jResponse["description"] := aError[MODEL_MSGERR_MESSAGE]
+            self:SetResponse(jResponse:ToJson())
+            SetRestFault(400, jResponse:ToJson(), , 400)
+        endif
     else
         jResponse["error"] := "id_invalido"
         jResponse["description"] := i18n("Perfil não encontrado utilizando o #[id] informado", {self:perfilId})
