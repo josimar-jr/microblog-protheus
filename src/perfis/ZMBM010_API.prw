@@ -18,6 +18,7 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsdata page             as integer optional
     wsdata perfilId         as character optional
 
+    // versões 1 - utilizam Seek e Reclock nos processos de gravação
     wsmethod GET V1ALL description "Recupera todos os perfis" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
     wsmethod POST V1ROOT description "Cria um perfil para o microblog" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
 
