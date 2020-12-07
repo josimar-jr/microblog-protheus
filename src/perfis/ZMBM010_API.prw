@@ -17,6 +17,9 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsdata pageSize         as integer optional
     wsdata page             as integer optional
     wsdata perfilId         as character optional
+    wsdata order            as character optional
+    wsdata fields           as character optional
+    wsdata filter           as character optional
 
     // versões 1 - utilizam Seek e Reclock nos processos de gravação
     wsmethod GET V1ALL description "Recupera todos os perfis" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
@@ -32,6 +35,9 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsmethod GET V2ID description "Recupera um perfil pelo id usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
     wsmethod PUT V2ID description "Faz a atualização de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
     wsmethod DELETE V2 description "Faz a exclusão de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
+
+    // versão 2 - recupera lista com propriedade para filtros e paginação
+    wsmethod GET V2ALL description "Recupera todos os perfis" wssyntax "/microblog/v2/perfis" path "/microblog/v2/perfis"
 
 end wsrestful
 
@@ -558,3 +564,52 @@ static function GetMyModel()
         _oModelDef := FwLoadModel("ZMBA010")
     endif
 return _oModelDef
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GET V2ALL
+    Recupera todos os perfis permite paginação, ordenação e filtro
+construídos exclusivamente para este método
+@type    method
+
+@author  josimar.assuncao
+@since   22.11.2020
+/*/
+//-------------------------------------------------------------------
+wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Perfis
+    local lProcessed as logical
+    local jResponse  as object
+    local jTempItem  as object
+    lProcessed := .T.
+
+    // Define o tipo de retorno do método
+    self:SetContentType("application/json")
+
+    // As propriedades da classe receberão os valores enviados por querystring
+    // exemplo: /rest/microblog/v1/perfis?page=1&pageSize=5&order=-user_id&fields=user_id,email
+    default self:page := 1
+    default self:pageSize := 5
+    default self:order := ""
+    default self:fields := ""
+    default self:filter := ""
+
+    DbSelectArea("ZT0")
+    DbSetOrder(3) // ZT0_FILIAL+ZT0_NOME
+    DbSeek(xFilial("ZT0"))
+
+    // exemplo de retorno de uma lista de objetos JSON
+    jResponse := JsonObject():New()
+    jResponse['items'] := {}
+    while ZT0->(!EOF())
+        aAdd(jResponse['items'], JsonObject():New())
+        jTempItem := aTail(jResponse['items'])
+
+        jTempItem["email"]   := ZT0->ZT0_EMAIL
+        jTempItem["user_id"] := ZT0->ZT0_USRID
+        jTempItem["name"]    := ZT0->ZT0_NOME
+        // jTempItem["inserted_at"] := ZT0->S_T_A_M_P_
+        // jTempItem["updated_at"] := ZT0->I_N_S_D_T_
+        ZT0->(DbSkip())
+    end
+
+    self:SetResponse(jResponse:ToJson())
+return lProcessed
