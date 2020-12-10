@@ -79,7 +79,7 @@ wsmethod GET V1ALL wsreceive page, pageSize wsservice Perfis
         // jTempItem["inserted_at"] := ZT0->S_T_A_M_P_
         // jTempItem["updated_at"] := ZT0->I_N_S_D_T_
         ZT0->(DbSkip())
-    end
+    enddo
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
@@ -559,37 +559,49 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
     local lProcessed as logical
     local jResponse  as object
     local jTempItem  as object
+    local cTempAlias as character
+    local cQuery     as character
     lProcessed := .T.
 
     // Define o tipo de retorno do método
     self:SetContentType("application/json")
 
     // As propriedades da classe receberão os valores enviados por querystring
-    // exemplo: /rest/microblog/v1/perfis?page=1&pageSize=5&order=-user_id&fields=user_id,email
+    // exemplo: /rest/microblog/v1/perfis?page=1&pageSize=5&order=-name&fields=name,email
     default self:page := 1
-    default self:pageSize := 5
+    default self:pageSize := 10
     default self:order := ""
     default self:fields := ""
     default self:filter := ""
 
-    DbSelectArea("ZT0")
-    DbSetOrder(3) // ZT0_FILIAL+ZT0_NOME
-    DbSeek(xFilial("ZT0"))
-
     // exemplo de retorno de uma lista de objetos JSON
     jResponse := JsonObject():New()
     jResponse['items'] := {}
-    while ZT0->(!EOF())
+
+    cQuery := "select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN, "
+    cQuery +=   "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT, "
+    cQuery +=   "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT "
+    cQuery += "from " + RetSqlName("ZT0") + " ZT0 "
+    cQuery += "where ZT0.D_E_L_E_T_=' ' "
+    cQuery += "order by ZT0_NOME asc"
+
+    cTempAlias := GetNextAlias()
+    DbUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cTempAlias, .F., .F.)
+
+    while (cTempAlias)->(!EOF())
         aAdd(jResponse['items'], JsonObject():New())
         jTempItem := aTail(jResponse['items'])
 
-        jTempItem["email"]   := ZT0->ZT0_EMAIL
-        jTempItem["user_id"] := ZT0->ZT0_USRID
-        jTempItem["name"]    := ZT0->ZT0_NOME
-        // jTempItem["inserted_at"] := ZT0->S_T_A_M_P_
-        // jTempItem["updated_at"] := ZT0->I_N_S_D_T_
-        ZT0->(DbSkip())
-    end
+        jTempItem["email"]   := RTrim((cTempAlias)->ZT0_EMAIL)
+        jTempItem["user_id"] := RTrim((cTempAlias)->ZT0_USRID)
+        jTempItem["name"]    := RTrim((cTempAlias)->ZT0_NOME)
+        jTempItem["admin"]   := (cTempAlias)->ZT0_ADMIN == "1"
+        jTempItem["inserted_at"] := (cTempAlias)->ZT0_INS_AT
+        jTempItem["updated_at"] := (cTempAlias)->ZT0_UPD_AT
+        (cTempAlias)->(DbSkip())
+    enddo
+
+    (cTempAlias)->(DbCloseArea())
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
