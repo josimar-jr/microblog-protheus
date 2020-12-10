@@ -2,8 +2,6 @@
 #include "restful.ch"
 #include "fwmvcdef.ch"
 
-static _oModelDef := Nil
-
 //-------------------------------------------------------------------
 /*/{Protheus.doc} perfis
     Classe para aplicar a atualização dos perfis das pessoas no microblog
@@ -311,7 +309,7 @@ wsmethod GET V2ID pathparam perfilId wsservice Perfis
     // Id não ser vazio e existir como item na tabela
     lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
 
-    oModel := GetMyModel()
+    oModel := FwLoadModel("ZMBA010")
     oModel:SetOperation(MODEL_OPERATION_VIEW)
 
     lProcessed := oModel:Activate()
@@ -372,8 +370,7 @@ wsmethod POST V2ROOT wsservice Perfis
         SetRestFault(400, jResponse:ToJson(), , 400)
         lProcessed := .F.
     else
-        // Chama uma função que garante um único do modelo
-        oModel := GetMyModel()
+        oModel := FwLoadModel("ZMBA010")
 
         oModel:SetOperation(MODEL_OPERATION_INSERT)
 
@@ -446,8 +443,7 @@ wsmethod PUT V2ID pathparam perfilId wsservice Perfis
             SetRestFault(400, jResponse:ToJson(), , 400)
             lProcessed := .F.
         else
-            // Chama uma função que garante um único do modelo
-            oModel := GetMyModel()
+            oModel := FwLoadModel("ZMBA010")
 
             oModel:SetOperation(MODEL_OPERATION_UPDATE)
 
@@ -518,7 +514,7 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
 
         lDelete := ZT0->(DbSeek(xFilial("ZT0")+self:perfilId))
         if lDelete
-            oModel := GetMyModel()
+            oModel := FwLoadModel("ZMBA010")
 
             oModel:SetOperation(MODEL_OPERATION_DELETE)
             lProcessed := oModel:Activate()
@@ -548,22 +544,6 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
     endif
 
 return lProcessed
-
-//-------------------------------------------------------------------
-/*/{Protheus.doc} GetMyModel
-    Função para carregar uma vez na thread o modelo de dados
-@type    method
-
-@author  josimar.assuncao
-@since   04.12.2020
-/*/
-//-------------------------------------------------------------------
-static function GetMyModel()
-
-    if _oModelDef == nil
-        _oModelDef := FwLoadModel("ZMBA010")
-    endif
-return _oModelDef
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} GET V2ALL
