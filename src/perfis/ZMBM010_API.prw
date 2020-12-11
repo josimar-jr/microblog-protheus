@@ -561,6 +561,9 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
     local jTempItem  as object
     local cTempAlias as character
     local cQuery     as character
+    local jFieldsMap as object
+    local nItemFrom  as numeric
+    local nItemTo    as numeric
     lProcessed := .T.
 
     // Define o tipo de retorno do método
@@ -578,15 +581,23 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
     jResponse := JsonObject():New()
     jResponse['items'] := {}
 
-    cQuery := "select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN, "
-    cQuery +=   "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT, "
-    cQuery +=   "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT "
-    cQuery += "from " + RetSqlName("ZT0") + " ZT0 "
-    cQuery += "where ZT0.D_E_L_E_T_=' ' "
+    nItemFrom := (self:page - 1) * self:pageSize + 1
+    nItemTo := (self:page) * self:pageSize
+
+    cQuery := "select * "
+    cQuery += "from ("
+    cQuery +=       " select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN,"
+    cQuery +=           "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT,"
+    cQuery +=           "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT,"
+    cQuery +=           "ROW_NUMBER() OVER (order by ZT0_NOME asc) SEQITEM "
+    cQuery +=       "from " + RetSqlName("ZT0") + " ZT0 "
+    cQuery +=       "where ZT0.D_E_L_E_T_ = ' ' "
+    cQuery +=    ") QUERYDATA "
+    cQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
     cQuery += "order by ZT0_NOME asc"
 
     cTempAlias := GetNextAlias()
-    DbUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cTempAlias, .F., .F.)
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cQuery), cTempAlias, .F., .F.)
 
     while (cTempAlias)->(!EOF())
         aAdd(jResponse['items'], JsonObject():New())
