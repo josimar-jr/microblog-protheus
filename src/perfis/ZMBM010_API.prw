@@ -2,6 +2,16 @@
 #include "restful.ch"
 #include "fwmvcdef.ch"
 
+#define QRY_PARAM_KEY 1
+#define QRY_PARAM_VALUE 2
+
+#define MAP_PROP 1
+#define MAP_FIELD 2
+#define MAP_TYPE 3
+
+#define QRY_VAL_TYPE 1
+#define QRY_VAL_VALUE 2
+
 //-------------------------------------------------------------------
 /*/{Protheus.doc} perfis
     Classe para aplicar a atualização dos perfis das pessoas no microblog
@@ -556,14 +566,25 @@ construídos exclusivamente para este método
 /*/
 //-------------------------------------------------------------------
 wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Perfis
-    local lProcessed as logical
-    local jResponse  as object
-    local jTempItem  as object
-    local cTempAlias as character
-    local cQuery     as character
-    local jFieldsMap as object
-    local nItemFrom  as numeric
-    local nItemTo    as numeric
+    local lProcessed    as logical
+    local jResponse     as object
+    local jTempItem     as object
+    local cTempAlias    as character
+    local cQuery        as character
+    local aFieldsMap    as object
+    local nItemFrom     as numeric
+    local nItemTo       as numeric
+    local cOrderBy      as character
+    local cOrdDirection as character
+    local lDesc         as logical
+    local aTemp         as array
+    local cTempField    as character
+    local nTemp         as numeric
+    local nI            as numeric
+    local nMax          as numeric
+    local cCondition    as character
+    local aQryValues    as array
+    local oPrepStat     as object
     lProcessed := .T.
 
     // Define o tipo de retorno do método
@@ -576,39 +597,113 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
     default self:order := ""
     default self:fields := ""
     default self:filter := ""
-
-    // exemplo de retorno de uma lista de objetos JSON
-    jResponse := JsonObject():New()
-    jResponse['items'] := {}
-
+    // Mapeia os campos da query com as propriedades
+    aFieldsMap := {;
+        {"email", "ZT0_EMAIL", "C"},;
+        {"user_id", "ZT0_USRID", "C"},;
+        {"name", "ZT0_NOME", "C"},;
+        {"admin", "ZT0_ADMIN", "L"},;
+        {"inserted_at", "ZT0_INS_AT", "C"},;
+        {"updated_at", "ZT0_UPD_AT", "C"} ;
+    }
+    // montagem da paginação
     nItemFrom := (self:page - 1) * self:pageSize + 1
     nItemTo := (self:page) * self:pageSize
+
+    // montagem da ordem
+    if Empty(Alltrim(self:order))
+        cOrderBy := "ZT0_NOME asc"
+    else
+        aTemp := StrTokArr(self:order, ",")
+        nMax := Len(aTemp)
+
+        cOrderBy := ""
+        for nI := 1 to nMax
+
+            lDesc := (SubStr(aTemp[nI], 1, 1) == "-")
+            if lDesc
+                cTempField := SubStr(aTemp[nI], 2)
+                cOrdDirection := " desc"
+            else
+                cTempField := aTemp[nI]
+                cOrdDirection := " asc"
+            endif
+
+            nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTempField})
+            if nTemp > 0
+                cOrderBy += aFieldsMap[nTemp, MAP_FIELD] + cOrdDirection + ","
+            endif
+        next nI
+        // Remove a última ,
+        cOrderBy := SubStr(cOrderBy, 1, Len(cOrderBy)-1)
+    endif
+
+    // monta a condição para a query
+    //  suporta filtros simples com operador LIKE -> campo like %valor%
+    cCondition := "ZT0.D_E_L_E_T_ = ' ' "
+    aQryValues := {}
+    for nI := 1 To Len(self:aQueryString)
+        cTempField := Lower(self:aQueryString[nI, QRY_PARAM_KEY])
+        nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTempField})
+        // quando encontra cria a expressão e guarda o valor para atribuir
+        if nTemp > 0
+            if aFieldsMap[nTemp, MAP_TYPE] == "C"
+                cCondition += "and ZT0." + aFieldsMap[nTemp, MAP_FIELD] + " like ? "
+            else
+                cCondition += "and ZT0." + aFieldsMap[nTemp, MAP_FIELD] + " = ? "
+            endif
+            // mantem par com tipo [QRY_VAL_TYPE] e valor [QRY_VAL_VALUE]
+            aAdd(aQryValues, {aFieldsMap[nTemp, MAP_TYPE], self:aQueryString[nI, QRY_PARAM_VALUE]} )
+        endif
+    next nI
 
     cQuery := "select * "
     cQuery += "from ("
     cQuery +=       " select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN,"
     cQuery +=           "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT,"
     cQuery +=           "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT,"
-    cQuery +=           "ROW_NUMBER() OVER (order by ZT0_NOME asc) SEQITEM "
+    cQuery +=           "ROW_NUMBER() OVER (order by "+ cOrderBy +") SEQITEM "
     cQuery +=       "from " + RetSqlName("ZT0") + " ZT0 "
-    cQuery +=       "where ZT0.D_E_L_E_T_ = ' ' "
+    cQuery +=       "where " + cCondition
     cQuery +=    ") QUERYDATA "
     cQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
-    cQuery += "order by ZT0_NOME asc"
+    cQuery += "order by " + cOrderBy
+
+    oPrepStat := FwPreparedStatement():New(cQuery)
+    for nI := 1 to Len(aQryValues)
+        // atribui os valores de string com operador like
+        if aQryValues[nI, QRY_VAL_TYPE] == "C"
+            oPrepStat:SetLike(nI, aQryValues[nI, QRY_VAL_VALUE])
+
+        // propriedade admin está com tipo lógico e faz igualdade 1=sim;2=não
+        elseif aQryValues[nI, QRY_VAL_TYPE] == "L"
+            if (Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "1" .Or. Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "true")
+                cTemp := "1"
+            else
+                cTemp := "2"
+            endif
+            oPrepStat:SetString(nI, cTemp)
+        endif
+    next nI
+
+    cQuery := oPrepStat:getFixQuery()
 
     cTempAlias := GetNextAlias()
     DbUseArea(.T., "TOPCONN", TcGenQry(,, cQuery), cTempAlias, .F., .F.)
 
-    while (cTempAlias)->(!EOF())
-        aAdd(jResponse['items'], JsonObject():New())
-        jTempItem := aTail(jResponse['items'])
+    jResponse := JsonObject():New()
+    jResponse["items"] := {}
 
-        jTempItem["email"]   := RTrim((cTempAlias)->ZT0_EMAIL)
-        jTempItem["user_id"] := RTrim((cTempAlias)->ZT0_USRID)
-        jTempItem["name"]    := RTrim((cTempAlias)->ZT0_NOME)
-        jTempItem["admin"]   := (cTempAlias)->ZT0_ADMIN == "1"
+    while (cTempAlias)->(!EOF())
+        aAdd(jResponse["items"], JsonObject():New())
+        jTempItem := aTail(jResponse["items"])
+
+        jTempItem["email"]       := RTrim((cTempAlias)->ZT0_EMAIL)
+        jTempItem["user_id"]     := RTrim((cTempAlias)->ZT0_USRID)
+        jTempItem["name"]        := RTrim((cTempAlias)->ZT0_NOME)
+        jTempItem["admin"]       := (cTempAlias)->ZT0_ADMIN == "1"
         jTempItem["inserted_at"] := (cTempAlias)->ZT0_INS_AT
-        jTempItem["updated_at"] := (cTempAlias)->ZT0_UPD_AT
+        jTempItem["updated_at"]  := (cTempAlias)->ZT0_UPD_AT
         (cTempAlias)->(DbSkip())
     enddo
 
