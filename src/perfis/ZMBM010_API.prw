@@ -569,7 +569,7 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     local jResponse     as object
     local jTempItem     as object
     local cTempAlias    as character
-    local cQuery        as character
+    local cDataQuery    as character
     local aFieldsMap    as object
     local nItemFrom     as numeric
     local nItemTo       as numeric
@@ -587,6 +587,10 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     local aRetProps     as array
     local nRetProps     as numeric
     local xPropValue
+    local nCount        as numeric
+    local cCountQuery   as character
+    local cProjQuery    as character
+    local cSubQuery     as character
     lProcessed := .T.
 
     // Define o tipo de retorno do método
@@ -658,19 +662,23 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
         endif
     next nI
 
-    cQuery := "select * "
-    cQuery += "from ("
-    cQuery +=       " select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN,"
-    cQuery +=           "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT,"
-    cQuery +=           "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT,"
-    cQuery +=           "ROW_NUMBER() OVER (order by "+ cOrderBy +") SEQITEM "
-    cQuery +=       "from " + RetSqlName("ZT0") + " ZT0 "
-    cQuery +=       "where " + cCondition
-    cQuery +=    ") QUERYDATA "
-    cQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
-    cQuery += "order by " + cOrderBy
+    // campos mapeados
+    cProjQuery := "select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN,"
+    cProjQuery += "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT,"
+    cProjQuery += "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT,"
+    cProjQuery += "ROW_NUMBER() OVER (order by "+ cOrderBy +") SEQITEM "
 
-    oPrepStat := FwPreparedStatement():New(cQuery)
+    // tabela e condições
+    cSubQuery := "from " + RetSqlName("ZT0") + " ZT0 "
+    cSubQuery += "where " + cCondition
+
+    // query para os dados
+    cDataQuery := "select * "
+    cDataQuery += "from ( " + cProjQuery + cSubQuery + " ) QUERYDATA "
+    cDataQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
+    cDataQuery += "order by " + cOrderBy
+
+    oPrepStat := FwPreparedStatement():New(cDataQuery)
     for nI := 1 to Len(aQryValues)
         // atribui os valores de string com operador like
         if aQryValues[nI, QRY_VAL_TYPE] == "C"
@@ -687,10 +695,10 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
         endif
     next nI
 
-    cQuery := oPrepStat:getFixQuery()
+    cDataQuery := oPrepStat:getFixQuery()
 
     cTempAlias := GetNextAlias()
-    DbUseArea(.T., "TOPCONN", TcGenQry(,, cQuery), cTempAlias, .F., .F.)
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cDataQuery), cTempAlias, .F., .F.)
 
     jResponse := JsonObject():New()
     jResponse["items"] := {}
@@ -715,22 +723,54 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
             // recupera o mapa propriedade x campo
             nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTemp})
 
-            // recupera o valor para a propriedade
-            xPropValue := (cTempAlias)->(FieldGet(FieldPos(aFieldsMap[nTemp, MAP_FIELD])))
+            if nTemp > 0
+                // recupera o valor para a propriedade
+                xPropValue := (cTempAlias)->(FieldGet(FieldPos(aFieldsMap[nTemp, MAP_FIELD])))
 
-            // atribui o valor na propriedade
-            if aFieldsMap[nTemp, MAP_TYPE] == "C"
-                jTempItem[cTemp] := RTrim(xPropValue)
-            elseif aFieldsMap[nTemp, MAP_TYPE] == "L"
-                jTempItem[cTemp] := xPropValue == "1"
-            else
-                jTempItem[cTemp] := xPropValue
+                // atribui o valor na propriedade
+                if aFieldsMap[nTemp, MAP_TYPE] == "C"
+                    jTempItem[cTemp] := RTrim(xPropValue)
+                elseif aFieldsMap[nTemp, MAP_TYPE] == "L"
+                    jTempItem[cTemp] := xPropValue == "1"
+                else
+                    jTempItem[cTemp] := xPropValue
+                endif
             endif
         next nI
         (cTempAlias)->(DbSkip())
     enddo
 
     (cTempAlias)->(DbCloseArea())
+
+    // Recupera a quantidade de registros
+    cCountQuery := "select count(*) ROWS_QT " + cSubQuery
+
+    oPrepStat := FwPreparedStatement():New(cCountQuery)
+    for nI := 1 to Len(aQryValues)
+        // atribui os valores de string com operador like
+        if aQryValues[nI, QRY_VAL_TYPE] == "C"
+            oPrepStat:SetLike(nI, aQryValues[nI, QRY_VAL_VALUE])
+
+        // propriedade admin está com tipo lógico então faz igualdade 1=sim;2=não
+        elseif aQryValues[nI, QRY_VAL_TYPE] == "L"
+            if (Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "1" .Or. Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "true")
+                cTemp := "1"
+            else
+                cTemp := "2"
+            endif
+            oPrepStat:SetString(nI, cTemp)
+        endif
+    next nI
+
+    cCountQuery := oPrepStat:getFixQuery()
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cCountQuery), cTempAlias, .F., .F.)
+
+    if (cTempAlias)->(EOF())
+        nCount := 0
+    else
+        nCount := (cTempAlias)->ROWS_QT
+    endif
+    jResponse["quantity"] := nCount
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
