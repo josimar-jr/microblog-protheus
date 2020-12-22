@@ -27,7 +27,6 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsdata perfilId         as character optional
     wsdata order            as character optional
     wsdata fields           as character optional
-    wsdata filter           as character optional
 
     // versões 1 - utilizam Seek e Reclock nos processos de gravação
     wsmethod GET V1ALL description "Recupera todos os perfis" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
@@ -565,7 +564,7 @@ construídos exclusivamente para este método
 @since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Perfis
+wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     local lProcessed    as logical
     local jResponse     as object
     local jTempItem     as object
@@ -596,7 +595,6 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
     default self:pageSize := 10
     default self:order := ""
     default self:fields := ""
-    default self:filter := ""
     // Mapeia os campos da query com as propriedades
     aFieldsMap := {;
         {"email", "ZT0_EMAIL", "C"},;
@@ -675,7 +673,7 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, filter, fields wsservice Per
         if aQryValues[nI, QRY_VAL_TYPE] == "C"
             oPrepStat:SetLike(nI, aQryValues[nI, QRY_VAL_VALUE])
 
-        // propriedade admin está com tipo lógico e faz igualdade 1=sim;2=não
+        // propriedade admin está com tipo lógico então faz igualdade 1=sim;2=não
         elseif aQryValues[nI, QRY_VAL_TYPE] == "L"
             if (Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "1" .Or. Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "true")
                 cTemp := "1"
