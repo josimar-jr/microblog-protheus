@@ -584,6 +584,9 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     local cCondition    as character
     local aQryValues    as array
     local oPrepStat     as object
+    local aRetProps     as array
+    local nRetProps     as numeric
+    local xPropValue
     lProcessed := .T.
 
     // Define o tipo de retorno do método
@@ -601,8 +604,8 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
         {"user_id", "ZT0_USRID", "C"},;
         {"name", "ZT0_NOME", "C"},;
         {"admin", "ZT0_ADMIN", "L"},;
-        {"inserted_at", "ZT0_INS_AT", "C"},;
-        {"updated_at", "ZT0_UPD_AT", "C"} ;
+        {"inserted_at", "ZT0_INS_AT", "D"},;
+        {"updated_at", "ZT0_UPD_AT", "D"} ;
     }
     // montagem da paginação
     nItemFrom := (self:page - 1) * self:pageSize + 1
@@ -692,16 +695,38 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     jResponse := JsonObject():New()
     jResponse["items"] := {}
 
+    // monta as propriedades escolhidas para retorno
+    aRetProps := StrTokArr(self:fields, ",")
+    nRetProps := Len(aRetProps)
+
+    if nRetProps == 0
+        aRetProps := {"email", "user_id", "name", "admin", "inserted_at", "updated_at"}
+        nRetProps := Len(aRetProps)
+    endif
+
     while (cTempAlias)->(!EOF())
         aAdd(jResponse["items"], JsonObject():New())
         jTempItem := aTail(jResponse["items"])
 
-        jTempItem["email"]       := RTrim((cTempAlias)->ZT0_EMAIL)
-        jTempItem["user_id"]     := RTrim((cTempAlias)->ZT0_USRID)
-        jTempItem["name"]        := RTrim((cTempAlias)->ZT0_NOME)
-        jTempItem["admin"]       := (cTempAlias)->ZT0_ADMIN == "1"
-        jTempItem["inserted_at"] := (cTempAlias)->ZT0_INS_AT
-        jTempItem["updated_at"]  := (cTempAlias)->ZT0_UPD_AT
+        for nI := 1 to nRetProps
+            // recupera o nome da propriedade
+            cTemp := aRetProps[nI]
+
+            // recupera o mapa propriedade x campo
+            nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTemp})
+
+            // recupera o valor para a propriedade
+            xPropValue := (cTempAlias)->(FieldGet(FieldPos(aFieldsMap[nTemp, MAP_FIELD])))
+
+            // atribui o valor na propriedade
+            if aFieldsMap[nTemp, MAP_TYPE] == "C"
+                jTempItem[cTemp] := RTrim(xPropValue)
+            elseif aFieldsMap[nTemp, MAP_TYPE] == "L"
+                jTempItem[cTemp] := xPropValue == "1"
+            else
+                jTempItem[cTemp] := xPropValue
+            endif
+        next nI
         (cTempAlias)->(DbSkip())
     enddo
 
