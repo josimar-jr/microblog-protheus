@@ -8,6 +8,7 @@
 #define MAP_PROP 1
 #define MAP_FIELD 2
 #define MAP_TYPE 3
+#define MAP_INTERNAL_FIELD 4
 
 #define QRY_VAL_TYPE 1
 #define QRY_VAL_VALUE 2
@@ -604,21 +605,19 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     default self:fields := ""
     // Mapeia os campos da query com as propriedades
     aFieldsMap := {;
-        {"email", "ZT0_EMAIL", "C"},;
-        {"user_id", "ZT0_USRID", "C"},;
-        {"name", "ZT0_NOME", "C"},;
-        {"admin", "ZT0_ADMIN", "L"},;
-        {"inserted_at", "ZT0_INS_AT", "D"},;
-        {"updated_at", "ZT0_UPD_AT", "D"} ;
+        {"email", "ZT0_EMAIL", "C", "ZT0_EMAIL"},;
+        {"user_id", "ZT0_USRID", "C", "ZT0_USRID"},;
+        {"name", "ZT0_NOME", "C", "ZT0_NOME"},;
+        {"admin", "ZT0_ADMIN", "L", "ZT0_ADMIN"},;
+        {"inserted_at", "ZT0_INS_AT", "D", "I_N_S_D_T_"},;
+        {"updated_at", "ZT0_UPD_AT", "D", "S_T_A_M_P_"} ;
     }
     // montagem da paginação
     nItemFrom := (self:page - 1) * self:pageSize + 1
     nItemTo := (self:page) * self:pageSize
 
     // montagem da ordem
-    if Empty(Alltrim(self:order))
-        cOrderBy := "ZT0_NOME asc"
-    else
+    if !Empty(Alltrim(self:order))
         aTemp := StrTokArr(self:order, ",")
         nMax := Len(aTemp)
 
@@ -636,11 +635,15 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
 
             nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTempField})
             if nTemp > 0
-                cOrderBy += aFieldsMap[nTemp, MAP_FIELD] + cOrdDirection + ","
+                cOrderBy += aFieldsMap[nTemp, MAP_INTERNAL_FIELD] + cOrdDirection + ","
             endif
         next nI
-        // Remove a última ,
+        // Remove a última vírgula (,)
         cOrderBy := SubStr(cOrderBy, 1, Len(cOrderBy)-1)
+    endif
+
+    if Empty(cOrderBy)
+        cOrderBy := "ZT0_NOME asc"
     endif
 
     // monta a condição para a query
@@ -676,7 +679,6 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     cDataQuery := "select * "
     cDataQuery += "from ( " + cProjQuery + cSubQuery + " ) QUERYDATA "
     cDataQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
-    cDataQuery += "order by " + cOrderBy
 
     oPrepStat := FwPreparedStatement():New(cDataQuery)
     for nI := 1 to Len(aQryValues)
@@ -770,7 +772,7 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
     else
         nCount := (cTempAlias)->ROWS_QT
     endif
-    jResponse["quantity"] := nCount
+    jResponse["size"] := nCount
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
