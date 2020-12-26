@@ -2,7 +2,16 @@
 #include "restful.ch"
 #include "fwmvcdef.ch"
 
-static _oModelDef := Nil
+#define QRY_PARAM_KEY 1
+#define QRY_PARAM_VALUE 2
+
+#define MAP_PROP 1
+#define MAP_FIELD 2
+#define MAP_TYPE 3
+#define MAP_INTERNAL_FIELD 4
+
+#define QRY_VAL_TYPE 1
+#define QRY_VAL_VALUE 2
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} perfis
@@ -17,6 +26,8 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsdata pageSize         as integer optional
     wsdata page             as integer optional
     wsdata perfilId         as character optional
+    wsdata order            as character optional
+    wsdata fields           as character optional
 
     // versões 1 - utilizam Seek e Reclock nos processos de gravação
     wsmethod GET V1ALL description "Recupera todos os perfis" wssyntax "/microblog/v1/perfis" path "/microblog/v1/perfis"
@@ -32,6 +43,9 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsmethod GET V2ID description "Recupera um perfil pelo id usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
     wsmethod PUT V2ID description "Faz a atualização de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
     wsmethod DELETE V2 description "Faz a exclusão de um perfil usando modelo MVC" wssyntax "/microblog/v2/perfis/{perfilId}" path "/microblog/v2/perfis/{perfilId}"
+
+    // versão 2 - recupera lista com propriedade para filtros e paginação
+    wsmethod GET V2ALL description "Recupera todos os perfis" wssyntax "/microblog/v2/perfis" path "/microblog/v2/perfis"
 
 end wsrestful
 
@@ -75,7 +89,7 @@ wsmethod GET V1ALL wsreceive page, pageSize wsservice Perfis
         // jTempItem["inserted_at"] := ZT0->S_T_A_M_P_
         // jTempItem["updated_at"] := ZT0->I_N_S_D_T_
         ZT0->(DbSkip())
-    end
+    enddo
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
@@ -305,7 +319,7 @@ wsmethod GET V2ID pathparam perfilId wsservice Perfis
     // Id não ser vazio e existir como item na tabela
     lProcessed := (!(Alltrim(self:perfilId) == "") .And. ZT0->(DbSeek(xFilial("ZT0")+self:perfilId)))
 
-    oModel := GetMyModel()
+    oModel := FwLoadModel("ZMBA010")
     oModel:SetOperation(MODEL_OPERATION_VIEW)
 
     lProcessed := oModel:Activate()
@@ -366,8 +380,7 @@ wsmethod POST V2ROOT wsservice Perfis
         SetRestFault(400, jResponse:ToJson(), , 400)
         lProcessed := .F.
     else
-        // Chama uma função que garante um único do modelo
-        oModel := GetMyModel()
+        oModel := FwLoadModel("ZMBA010")
 
         oModel:SetOperation(MODEL_OPERATION_INSERT)
 
@@ -440,8 +453,7 @@ wsmethod PUT V2ID pathparam perfilId wsservice Perfis
             SetRestFault(400, jResponse:ToJson(), , 400)
             lProcessed := .F.
         else
-            // Chama uma função que garante um único do modelo
-            oModel := GetMyModel()
+            oModel := FwLoadModel("ZMBA010")
 
             oModel:SetOperation(MODEL_OPERATION_UPDATE)
 
@@ -512,7 +524,7 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
 
         lDelete := ZT0->(DbSeek(xFilial("ZT0")+self:perfilId))
         if lDelete
-            oModel := GetMyModel()
+            oModel := FwLoadModel("ZMBA010")
 
             oModel:SetOperation(MODEL_OPERATION_DELETE)
             lProcessed := oModel:Activate()
@@ -544,17 +556,223 @@ wsmethod DELETE V2 pathparam perfilId wsservice Perfis
 return lProcessed
 
 //-------------------------------------------------------------------
-/*/{Protheus.doc} GetMyModel
-    Função para carregar uma vez na thread o modelo de dados
+/*/{Protheus.doc} GET V2ALL
+    Recupera todos os perfis permite paginação, ordenação e filtro
+construídos exclusivamente para este método
 @type    method
 
 @author  josimar.assuncao
-@since   04.12.2020
+@since   22.11.2020
 /*/
 //-------------------------------------------------------------------
-static function GetMyModel()
+wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
+    local lProcessed    as logical
+    local jResponse     as object
+    local jTempItem     as object
+    local cTempAlias    as character
+    local cDataQuery    as character
+    local aFieldsMap    as object
+    local nItemFrom     as numeric
+    local nItemTo       as numeric
+    local cOrderBy      as character
+    local cOrdDirection as character
+    local lDesc         as logical
+    local aTemp         as array
+    local cTempField    as character
+    local nTemp         as numeric
+    local nI            as numeric
+    local nMax          as numeric
+    local cCondition    as character
+    local aQryValues    as array
+    local oPrepStat     as object
+    local aRetProps     as array
+    local nRetProps     as numeric
+    local xPropValue
+    local nCount        as numeric
+    local cCountQuery   as character
+    local cProjQuery    as character
+    local cSubQuery     as character
+    lProcessed := .T.
 
-    if _oModelDef == nil
-        _oModelDef := FwLoadModel("ZMBA010")
+    // Define o tipo de retorno do método
+    self:SetContentType("application/json")
+
+    // As propriedades da classe receberão os valores enviados por querystring
+    // exemplo: /rest/microblog/v1/perfis?page=1&pageSize=5&order=-name&fields=name,email
+    default self:page := 1
+    default self:pageSize := 10
+    default self:order := ""
+    default self:fields := ""
+    // Mapeia os campos da query com as propriedades
+    aFieldsMap := {;
+        {"email", "ZT0_EMAIL", "C", "ZT0_EMAIL"},;
+        {"user_id", "ZT0_USRID", "C", "ZT0_USRID"},;
+        {"name", "ZT0_NOME", "C", "ZT0_NOME"},;
+        {"admin", "ZT0_ADMIN", "L", "ZT0_ADMIN"},;
+        {"inserted_at", "ZT0_INS_AT", "D", "I_N_S_D_T_"},;
+        {"updated_at", "ZT0_UPD_AT", "D", "S_T_A_M_P_"} ;
+    }
+    // montagem da paginação
+    nItemFrom := (self:page - 1) * self:pageSize + 1
+    nItemTo := (self:page) * self:pageSize
+
+    // montagem da ordem
+    if !Empty(Alltrim(self:order))
+        aTemp := StrTokArr(self:order, ",")
+        nMax := Len(aTemp)
+
+        cOrderBy := ""
+        for nI := 1 to nMax
+
+            lDesc := (SubStr(aTemp[nI], 1, 1) == "-")
+            if lDesc
+                cTempField := SubStr(aTemp[nI], 2)
+                cOrdDirection := " desc"
+            else
+                cTempField := aTemp[nI]
+                cOrdDirection := " asc"
+            endif
+
+            nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTempField})
+            if nTemp > 0
+                cOrderBy += aFieldsMap[nTemp, MAP_INTERNAL_FIELD] + cOrdDirection + ","
+            endif
+        next nI
+        // Remove a última vírgula (,)
+        cOrderBy := SubStr(cOrderBy, 1, Len(cOrderBy)-1)
     endif
-return _oModelDef
+
+    if Empty(cOrderBy)
+        cOrderBy := "ZT0_NOME asc"
+    endif
+
+    // monta a condição para a query
+    //  suporta filtros simples com operador LIKE -> campo like %valor%
+    cCondition := "ZT0.D_E_L_E_T_ = ' ' "
+    aQryValues := {}
+    for nI := 1 To Len(self:aQueryString)
+        cTempField := Lower(self:aQueryString[nI, QRY_PARAM_KEY])
+        nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTempField})
+        // quando encontra cria a expressão e guarda o valor para atribuir
+        if nTemp > 0
+            if aFieldsMap[nTemp, MAP_TYPE] == "C"
+                cCondition += "and ZT0." + aFieldsMap[nTemp, MAP_FIELD] + " like ? "
+            else
+                cCondition += "and ZT0." + aFieldsMap[nTemp, MAP_FIELD] + " = ? "
+            endif
+            // mantem par com tipo [QRY_VAL_TYPE] e valor [QRY_VAL_VALUE]
+            aAdd(aQryValues, {aFieldsMap[nTemp, MAP_TYPE], self:aQueryString[nI, QRY_PARAM_VALUE]} )
+        endif
+    next nI
+
+    // campos mapeados
+    cProjQuery := "select ZT0_EMAIL, ZT0_USRID, ZT0_NOME, ZT0_ADMIN,"
+    cProjQuery += "convert(varchar(23), I_N_S_D_T_, 21) ZT0_INS_AT,"
+    cProjQuery += "convert(varchar(23), S_T_A_M_P_, 21) ZT0_UPD_AT,"
+    cProjQuery += "ROW_NUMBER() OVER (order by "+ cOrderBy +") SEQITEM "
+
+    // tabela e condições
+    cSubQuery := "from " + RetSqlName("ZT0") + " ZT0 "
+    cSubQuery += "where " + cCondition
+
+    // query para os dados
+    cDataQuery := "select * "
+    cDataQuery += "from ( " + cProjQuery + cSubQuery + " ) QUERYDATA "
+    cDataQuery += "where SEQITEM >= "+ cValToChar(nItemFrom) +" and SEQITEM <= "+ cValToChar(nItemTo) +" "
+
+    oPrepStat := FwPreparedStatement():New(cDataQuery)
+    for nI := 1 to Len(aQryValues)
+        // atribui os valores de string com operador like
+        if aQryValues[nI, QRY_VAL_TYPE] == "C"
+            oPrepStat:SetLike(nI, aQryValues[nI, QRY_VAL_VALUE])
+
+        // propriedade admin está com tipo lógico então faz igualdade 1=sim;2=não
+        elseif aQryValues[nI, QRY_VAL_TYPE] == "L"
+            if (Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "1" .Or. Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "true")
+                cTemp := "1"
+            else
+                cTemp := "2"
+            endif
+            oPrepStat:SetString(nI, cTemp)
+        endif
+    next nI
+
+    cDataQuery := oPrepStat:getFixQuery()
+
+    cTempAlias := GetNextAlias()
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cDataQuery), cTempAlias, .F., .F.)
+
+    jResponse := JsonObject():New()
+    jResponse["items"] := {}
+
+    // monta as propriedades escolhidas para retorno
+    aRetProps := StrTokArr(self:fields, ",")
+    nRetProps := Len(aRetProps)
+
+    if nRetProps == 0
+        aRetProps := {"email", "user_id", "name", "admin", "inserted_at", "updated_at"}
+        nRetProps := Len(aRetProps)
+    endif
+
+    while (cTempAlias)->(!EOF())
+        aAdd(jResponse["items"], JsonObject():New())
+        jTempItem := aTail(jResponse["items"])
+
+        for nI := 1 to nRetProps
+            // recupera o nome da propriedade
+            cTemp := aRetProps[nI]
+
+            // recupera o mapa propriedade x campo
+            nTemp := aScan(aFieldsMap, {|x| x[MAP_PROP] == cTemp})
+
+            if nTemp > 0
+                // recupera o valor para a propriedade
+                xPropValue := (cTempAlias)->(FieldGet(FieldPos(aFieldsMap[nTemp, MAP_FIELD])))
+
+                // atribui o valor na propriedade
+                if aFieldsMap[nTemp, MAP_TYPE] == "C"
+                    jTempItem[cTemp] := RTrim(xPropValue)
+                elseif aFieldsMap[nTemp, MAP_TYPE] == "L"
+                    jTempItem[cTemp] := xPropValue == "1"
+                else
+                    jTempItem[cTemp] := xPropValue
+                endif
+            endif
+        next nI
+        (cTempAlias)->(DbSkip())
+    enddo
+
+    (cTempAlias)->(DbCloseArea())
+
+    // Recupera a quantidade de registros
+    cCountQuery := "select count(*) ROWS_QT " + cSubQuery
+
+    oPrepStat := FwPreparedStatement():New(cCountQuery)
+    for nI := 1 to Len(aQryValues)
+        // atribui os valores de string com operador like
+        if aQryValues[nI, QRY_VAL_TYPE] == "C"
+            oPrepStat:SetLike(nI, aQryValues[nI, QRY_VAL_VALUE])
+
+        // propriedade admin está com tipo lógico então faz igualdade 1=sim;2=não
+        elseif aQryValues[nI, QRY_VAL_TYPE] == "L"
+            if (Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "1" .Or. Alltrim(aQryValues[nI, QRY_VAL_VALUE]) == "true")
+                cTemp := "1"
+            else
+                cTemp := "2"
+            endif
+            oPrepStat:SetString(nI, cTemp)
+        endif
+    next nI
+
+    cCountQuery := oPrepStat:getFixQuery()
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cCountQuery), cTempAlias, .F., .F.)
+
+    if (cTempAlias)->(EOF())
+        nCount := 0
+    else
+        nCount := (cTempAlias)->ROWS_QT
+    endif
+    jResponse["size"] := nCount
+
+    self:SetResponse(jResponse:ToJson())
+return lProcessed

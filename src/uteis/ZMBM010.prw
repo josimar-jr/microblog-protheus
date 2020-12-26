@@ -1,5 +1,8 @@
 #include "protheus.ch"
 
+static oStmpIdx := FWPreparedStatement():New("CREATE INDEX ? ON ? (S_T_A_M_P_,R_E_C_N_O_,D_E_L_E_T_) ")
+static oInsDtIdx := FWPreparedStatement():New("CREATE INDEX ? ON ? (I_N_S_D_T_,R_E_C_N_O_,D_E_L_E_T_) ")
+
 //-------------------------------------------------------------------
 /*/{Protheus.doc} m010Stamp
     Assegura que as tabelas do projeto possuem a estrutura com
@@ -19,7 +22,7 @@ user function m010Stamp()
 
     if Len(aAliases) > 0
         // Isso vai habilitar dois novos campos S_T_A_M_P_ e I_N_S_D_T_ na tabela
-        FWEnableStamp(aAliases, .T.)
+        EnableStamp(aAliases, .T.)
     endif
 return
 
@@ -57,3 +60,102 @@ static function GetNoStampTables(aAliases)
     next nTables
 
 return aNoStamps
+
+/*/{Protheus.doc} EnableStamp
+    Adiciona os campos que representam o timestamp nos registros na tabela
+@type   function
+@author josimar.assuncao
+@since  26.12.2020
+/*/
+static function EnableStamp(xTable, lIndex)
+    local nX        as numeric
+    local aTables   as array
+    local aStruct   as array
+    local cTable    as character
+    local cSqlTable as character
+    local cTCConfig as character
+
+    cTCConfig := "TCCONFIG"
+
+    if ValType( xTable ) == "C"
+        aTables := { xTable }
+    else
+        aTables := AClone( xTable )
+    endif
+
+    &cTCConfig.("SETUSEROWSTAMP=ON") // Liga o UseRowStamp para a conexao atual
+    &cTCConfig.("SETAUTOSTAMP=ON")   // Liga o AutoStamp para  conexao atual
+    &cTCConfig.("SETUSEROWINSDT=ON") // Liga o UseInsDt para  conexao atual
+    &cTCConfig.("SETAUTOINSDT=ON")   // Liga o AutoInsDt para  conexao atual
+
+    for nX := 1 to Len(aTables)
+        cTable := aTables[nX]
+
+        DBSelectArea(cTable)
+        (cTable) -> (DbCloseArea())
+
+        cSqlTable := RetSqlName(cTable)
+        TCRefresh(cSqlTable)
+
+        DBSelectArea(cTable)
+        aStruct := TcStruct(cSqlTable)
+
+        // campos foram criados?
+        if AScan(aStruct, {|field| field[1] == "S_T_A_M_P_" }) == 0 .Or. ;
+            AScan(aStruct, {|field| field[1] == "I_N_S_D_T_"}) == 0
+
+            UserException("Não foi possível criar algum dos campos 'I_N_S_D_T_' ou 'S_T_A_M_P_' verifique o dbaccess")
+        else
+            EnableStmpIdx(cSqlTable)
+            EnableInsDtIdx(cSqlTable)
+        endif
+    next
+
+    // Desliga as propriedades para não afetar outras tabelas do ERP
+    &cTCConfig.("SETUSEROWSTAMP=OFF")
+    &cTCConfig.("SETAUTOSTAMP=OFF")
+    &cTCConfig.("SETUSEROWINSDT=OFF")
+    &cTCConfig.("SETAUTOINSDT=OFF")
+return
+
+/*/{Protheus.doc} EnableStmpIdx
+    Cria o índice para o campo que representa a modificação
+@type   function
+@author josimar.assuncao
+@since  26.12.2020
+/*/
+static function EnableStmpIdx(cSqlTable)
+    local cIndex as character
+    cIndex := cSqlTable + "_STAMP"
+
+    if !TcCanOpen(cSqlTable, cIndex)
+        oStmpIdx:SetUnsafe(1,cIndex)
+        oStmpIdx:SetUnsafe(2,cSqlTable)
+        if TcSqlExec(oStmpIdx:GetFixQuery()) < 0
+            UserException("Não foi possível criar o índice para o campo 'S_T_A_M_P_'")
+        else
+            TCRefresh( cSqlTable )
+        endif
+    endif
+return
+
+/*/{Protheus.doc} EnableInsDtIdx
+    Cria o índice para o campo que representa a criação do registro
+@type   function
+@author josimar.assuncao
+@since  26.12.2020
+/*/
+static function EnableInsDtIdx(cSqlTable)
+    local cIndex as character
+    cIndex := cSqlTable + "_INSDT"
+
+    if !TcCanOpen(cSqlTable, cIndex)
+        oInsDtIdx:SetUnsafe(1,cIndex)
+        oInsDtIdx:SetUnsafe(2,cSqlTable)
+        if TcSqlExec(oInsDtIdx:GetFixQuery()) < 0
+            UserException("Não foi possível criar o índice para o campo 'I_N_S_D_T_'")
+        else
+            TCRefresh( cSqlTable )
+        endif
+    endif
+return
