@@ -52,3 +52,5 @@ Neste repositório tem os arquivos de coleção do `POSTMAN` para ser utilizado e i
 ## Réplica do ambiente
 Este ambiente foi criado com dicionário no banco de dados e caso utilize Microsoft Sql Server é possível restaurar utilizado o backup disponível neste [arquivo](https://drive.google.com/file/d/1D6aboQhDGn9Ow-MCnUHpfxE0b8gftfwy/view).
 Senha do usuário `admin` : `senha!forte!`
+
+É possível também utilizar os arquivos `.dtc` na pasta `resources` e aplicar/importar em um ambiente já existente.
