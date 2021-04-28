@@ -47,6 +47,9 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     // versão 2 - recupera lista com propriedade para filtros e paginação
     wsmethod GET V2ALL description "Recupera todos os perfis" wssyntax "/microblog/v2/perfis" path "/microblog/v2/perfis"
 
+    // versão 3 - utiliza FwBaseAdapterV2
+    wsmethod GET V3ALL description "Recupera todos os perfis" wssyntax "/microblog/v3/perfis" path "/microblog/v3/perfis"
+
 end wsrestful
 
 //-------------------------------------------------------------------
@@ -776,3 +779,60 @@ wsmethod GET V2ALL wsreceive page, pageSize, order, fields wsservice Perfis
 
     self:SetResponse(jResponse:ToJson())
 return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GET V3ALL
+    Recupera todos os perfis permite paginação, ordenação e filtro
+utilizando os recursos da classe FwBaseAdapterV2
+@type    method
+
+@author  josimar.assuncao
+@since   28.04.2021
+/*/
+//-------------------------------------------------------------------
+wsmethod GET V3ALL wsreceive page, pageSize, order, fields wsservice Perfis
+    local oApiAdapter as object
+    local lRet  as logical
+
+    default self:Page      := 1
+    default self:PageSize  := 10
+    default self:Fields    := ""
+
+    //PerfisBaseAdapterApi será a classe que implementa fornecer os dados para o WS
+    // O primeiro parametro indica que iremos tratar o método GET
+    oApiAdapter := PerfisBaseAdapterApi():buildGetList()
+
+    //o método setPage indica qual página deveremos retornar
+    //ex.: nossa consulta tem como resultado 100 produtos, e retornamos sempre uma listagem de 10 itens por página.
+    // a página 1 retorna os itens de 1 a 10
+    // a página 2 retorna os itens de 11 a 20
+    // e assim até chegar ao final de nossa listagem de 100 produtos
+    oApiAdapter:SetPage(self:Page)
+
+    // setPageSize indica que nossa página terá no máximo n itens
+    oApiAdapter:SetPageSize(self:PageSize)
+
+    // SetOrderQuery indica a ordem definida por querystring
+    oApiAdapter:SetOrderQuery(self:Order)
+
+    // SetUrlFilter indica o filtro querystring recebido (pode se utilizar um filtro oData)
+    oApiAdapter:SetUrlFilter(self:aQueryString)
+
+    // SetFields indica os campos que serão retornados via querystring
+    oApiAdapter:SetFields(self:Fields)
+
+    // Esse método irá processar as informações
+    lRet := oApiAdapter:GetPerfisList(self)
+
+    //Se tudo ocorreu bem, retorna os dados via Json
+    if lRet
+        self:SetResponse(oApiAdapter:GetJSONResponse())
+    else
+        //Ou retorna o erro encontrado durante o processamento
+        SetRestFault(oApiAdapter:GetCode(), oApiAdapter:GetMessage())
+        lRet := .F.
+   endif
+   //faz a desalocação de objetos e arrays utilizados
+   oApiAdapter:DeActivate()
+   oApiAdapter := nil
+return lRet
