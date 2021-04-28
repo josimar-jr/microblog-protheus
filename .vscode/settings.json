@@ -1,4 +1,5 @@
 {
+    "workbench.colorTheme": "Monokai Dimmed",
     "files.encoding": "windows1252",
     "files.trimTrailingWhitespace": true,
     "editor.renderWhitespace": "all",
@@ -11,7 +12,7 @@
             "environment": "p12microblog",
             "language": "PORTUGUESE",
             "smartClientPath": "C:\\Especif\\Protheus12\\microblog\\bin\\smartclient\\",
-            "includeList": "C:\\advpl_outros\\protheus_microblog\\rest-server\\resources\\includes_padrao\\;C:\\advpl_outros\\protheus_microblog\\rest-server\\resources\\includes\\",
+            "includeList": "C:\\advpl_outros\\microblog_protheus\\rest-server\\resources\\includes_padrao\\;C:\\advpl_outros\\microblog_protheus\\rest-server\\resources\\includes\\",
             "rpoType": "TOP",
             "serverVersion": "191205P",
             "ssl": false,
