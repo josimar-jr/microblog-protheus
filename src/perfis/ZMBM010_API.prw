@@ -48,7 +48,8 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     wsmethod GET V2ALL description "Recupera todos os perfis" wssyntax "/microblog/v2/perfis" path "/microblog/v2/perfis"
 
     // versão 3 - utiliza FwBaseAdapterV2
-    wsmethod GET V3ALL description "Recupera todos os perfis" wssyntax "/microblog/v3/perfis" path "/microblog/v3/perfis"
+    wsmethod GET V3ALL description "Recupera todos os perfis usando FwBaseAdapterV2" wssyntax "/microblog/v3/perfis" path "/microblog/v3/perfis"
+    wsmethod GET V3ID description "Recupera um perfil pelo id usando FwBaseAdapterV2" wssyntax "/microblog/v3/perfis/{perfilId}" path "/microblog/v3/perfis/{perfilId}"
 
 end wsrestful
 
@@ -823,6 +824,44 @@ wsmethod GET V3ALL wsreceive page, pageSize, order, fields wsservice Perfis
 
     // Esse método irá processar as informações
     lRet := oApiAdapter:GetPerfisList(self)
+
+    //Se tudo ocorreu bem, retorna os dados via Json
+    if lRet
+        self:SetResponse(oApiAdapter:GetJSONResponse())
+    else
+        //Ou retorna o erro encontrado durante o processamento
+        SetRestFault(oApiAdapter:GetCode(), oApiAdapter:GetMessage())
+        lRet := .F.
+   endif
+   //faz a desalocação de objetos e arrays utilizados
+   oApiAdapter:DeActivate()
+   oApiAdapter := nil
+return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GET V3ID
+    Recupera um perfil pelo id usando FwBaseAdapterV2
+@type    method
+
+@author  josimar.assuncao
+@since   28.04.2021
+/*/
+//-------------------------------------------------------------------
+wsmethod GET V3ID wsreceive fields wsservice Perfis
+    local oApiAdapter as object
+    local lRet  as logical
+
+    default self:fields    := ""
+
+    //PerfisBaseAdapterApi será a classe que implementa fornecer os dados para o WS
+    // O primeiro parametro indica que iremos tratar o método GET
+    oApiAdapter := PerfisBaseAdapterApi():buildGetOne()
+
+    // SetFields indica os campos que serão retornados via querystring
+    oApiAdapter:SetFields(self:Fields)
+
+    // Esse método irá processar as informações
+    lRet := oApiAdapter:GetPerfilId(self)
 
     //Se tudo ocorreu bem, retorna os dados via Json
     if lRet
