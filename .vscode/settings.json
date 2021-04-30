@@ -33,5 +33,5 @@
     "advpl.debug_showStatics": false,
     "advpl.compile_force_recompile": true,
     "advpl.selectedEnvironment": "p12microblog",
-    "advpl.workspaceFolders": "c:\\advpl_outros\\protheus_microblog\\rest-server;"
+    "advpl.workspaceFolders": "c:\\advpl_outros\\microblog_protheus\\rest-server;"
 }

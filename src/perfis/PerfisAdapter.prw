@@ -1,4 +1,5 @@
 #include 'protheus.ch'
+#include 'fwmvcdef.ch'
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} PerfisBaseAdapterApi
@@ -9,16 +10,17 @@
 /*/
 //-------------------------------------------------------------------
 class PerfisBaseAdapterApi from FWAdapterBaseV2
-
+    data jPostResponse as object
     method New()
 
     static method buildGetList()
-    Static Method buildGetOne()
-    // Static Method buildGetList()
-    // Static Method buildGetList()
+    static method buildGetOne()
+    static method buildPostOne()
+    // static method buildGetList()
 
     method GetPerfisList()
     method GetPerfilId()
+    method PostPerfil()
 
 endclass
 
@@ -92,7 +94,7 @@ return oInstance
 @since   28.04.2021
 /*/
 //-------------------------------------------------------------------
-method GetPerfisList(oWSRest) class PerfisBaseAdapterApi
+method GetPerfisList() class PerfisBaseAdapterApi
     local lProcessed as logical
     local aArea      as array
     local cWhere     as character
@@ -103,20 +105,20 @@ method GetPerfisList(oWSRest) class PerfisBaseAdapterApi
     AddMapFields(self)
 
     // Informa a Query a ser utilizada pela API
-    ::SetQuery(GetQuery())
+    self:SetQuery(GetQuery())
 
     // Informa a clausula Where da Query
     cWhere := " ZT0_FILIAL = '"+ FWxFilial('ZT0') +"' AND ZT0.D_E_L_E_T_ = ' '"
-    ::SetWhere(cWhere)
+    self:SetWhere(cWhere)
 
     // Informa a ordenação padrão a ser Utilizada pela Query
-    ::SetOrder("ZT0_NOME")
+    self:SetOrder("ZT0_NOME")
 
     // Executa a consulta, se retornar .T. tudo ocorreu conforme esperado
-    lProcessed := ::Execute()
+    lProcessed := self:Execute()
     if lProcessed
-        // Gera o arquivo Json com o retorno da Query
-        ::FillGetResponse()
+        // Gera o Json com o retorno da query
+        self:FillGetResponse()
     endif
 
     FwRestArea(aArea)
@@ -124,7 +126,7 @@ return lProcessed
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} buildGetOne
-    Cria uma instância da classe para o processamento do método GET para coleções
+    Cria uma instância da classe para o processamento do método GET para id
 @type   class
 @author  josimar.assuncao
 @since   28.04.2021
@@ -144,7 +146,7 @@ return oInstance
 @since   28.04.2021
 /*/
 //-------------------------------------------------------------------
-method GetPerfilId(oWSRest) class PerfisBaseAdapterApi
+method GetPerfilId(cPerfilId) class PerfisBaseAdapterApi
     local lProcessed as logical
     local aArea      as array
     local cWhere     as character
@@ -155,21 +157,81 @@ method GetPerfilId(oWSRest) class PerfisBaseAdapterApi
     AddMapFields(self)
 
     // Informa a Query a ser utilizada pela API
-    ::SetQuery(GetQuery())
+    self:SetQuery(GetQuery())
 
     // Informa a clausula Where da Query
-    cWhere := " ZT0_FILIAL = '"+ FWxFilial('ZT0') +"' AND ZT0_USRID = '"+ oWSRest:perfilId +"' AND ZT0.D_E_L_E_T_ = ' '"
-    ::SetWhere(cWhere)
+    cWhere := " ZT0_FILIAL = '"+ FWxFilial('ZT0') +"' AND ZT0_USRID = ? AND ZT0.D_E_L_E_T_ = ' '"
+    cWhere := FwStateSql(cWhere, { cPerfilId })
+    self:SetWhere(cWhere)
 
     // Informa a ordenação padrão a ser Utilizada pela Query
-    ::SetOrder("ZT0_NOME")
+    self:SetOrder("ZT0_NOME")
 
     // Executa a consulta, se retornar .T. tudo ocorreu conforme esperado
-    lProcessed := ::Execute()
+    lProcessed := self:Execute()
     if lProcessed
-        // Gera o arquivo Json com o retorno da Query
-        ::FillGetResponse()
+        // Gera o Json com o retorno da query
+        self:FillGetResponse()
     endif
 
     FwRestArea(aArea)
+return lProcessed
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} buildPostOne
+    Cria uma instância da classe para o processamento do método POST
+@type   class
+@author  josimar.assuncao
+@since   28.04.2021
+/*/
+//-------------------------------------------------------------------
+method buildPostOne() class PerfisBaseAdapterApi
+    local oInstance as object
+
+    oInstance := PerfisBaseAdapterApi():New("POST")
+return oInstance
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} PostPerfil
+    Faz a inclusão de um perfil utilizando a leitura pela FwBaseAdapterV2
+@type   class
+@author  josimar.assuncao
+@since   28.04.2021
+/*/
+//-------------------------------------------------------------------
+method PostPerfil() class PerfisBaseAdapterApi
+    local lProcessed as logical
+    local oModel as object
+    local aError as array
+
+    AddMapFields(self)
+    lProcessed := self:ValidContent()
+
+    if lProcessed
+        oModel := FwLoadModel("ZMBA010")
+
+        oModel:SetOperation(MODEL_OPERATION_INSERT)
+
+        lProcessed := oModel:Activate()
+        oZT0Header := oModel:GetModel("ZT0_FIELDS")
+
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_EMAIL" , self:GetERPValue('ZT0_EMAIL'))
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_USRID" , self:GetERPValue('ZT0_USRID'))
+        lProcessed := lProcessed .And. oZT0Header:SetValue("ZT0_NOME"  , self:GetERPValue('ZT0_NOME'))
+
+        lProcessed := lProcessed .And. oModel:VldData() .And. oModel:CommitData()
+
+        self:jPostResponse := JsonObject():New()
+        if lProcessed
+            self:jPostResponse["email"]   := oZT0Header:GetValue("ZT0_EMAIL")
+            self:jPostResponse["user_id"] := oZT0Header:GetValue("ZT0_USRID")
+            self:jPostResponse["name"]    := oZT0Header:GetValue("ZT0_NOME")
+            // self:jPostResponse["inserted_at"] := ZT0->S_T_A_M_P_
+            // self:jPostResponse["updated_at"] := ZT0->I_N_S_D_T_
+        else
+            aError := oModel:GetErrorMessage()
+            self:jPostResponse["error"] := "creation_failed"
+            self:jPostResponse["description"] := aError[MODEL_MSGERR_MESSAGE]
+        endif
+    endif
 return lProcessed

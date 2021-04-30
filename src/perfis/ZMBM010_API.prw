@@ -50,6 +50,7 @@ wsrestful Perfis description "Trata a atualização dos perfis que usam o microblo
     // versão 3 - utiliza FwBaseAdapterV2
     wsmethod GET V3ALL description "Recupera todos os perfis usando FwBaseAdapterV2" wssyntax "/microblog/v3/perfis" path "/microblog/v3/perfis"
     wsmethod GET V3ID description "Recupera um perfil pelo id usando FwBaseAdapterV2" wssyntax "/microblog/v3/perfis/{perfilId}" path "/microblog/v3/perfis/{perfilId}"
+    wsmethod POST V3ROOT description "Cria um perfil para o microblog usando FwBaseAdapterV2" wssyntax "/microblog/v3/perfis" path "/microblog/v3/perfis"
 
 end wsrestful
 
@@ -823,7 +824,7 @@ wsmethod GET V3ALL wsreceive page, pageSize, order, fields wsservice Perfis
     oApiAdapter:SetFields(self:Fields)
 
     // Esse método irá processar as informações
-    lRet := oApiAdapter:GetPerfisList(self)
+    lRet := oApiAdapter:GetPerfisList()
 
     //Se tudo ocorreu bem, retorna os dados via Json
     if lRet
@@ -832,10 +833,10 @@ wsmethod GET V3ALL wsreceive page, pageSize, order, fields wsservice Perfis
         //Ou retorna o erro encontrado durante o processamento
         SetRestFault(oApiAdapter:GetCode(), oApiAdapter:GetMessage())
         lRet := .F.
-   endif
-   //faz a desalocação de objetos e arrays utilizados
-   oApiAdapter:DeActivate()
-   oApiAdapter := nil
+    endif
+    //faz a desalocação de objetos e arrays utilizados
+    oApiAdapter:DeActivate()
+    oApiAdapter := nil
 return lRet
 
 //-------------------------------------------------------------------
@@ -861,7 +862,7 @@ wsmethod GET V3ID wsreceive fields wsservice Perfis
     oApiAdapter:SetFields(self:Fields)
 
     // Esse método irá processar as informações
-    lRet := oApiAdapter:GetPerfilId(self)
+    lRet := oApiAdapter:GetPerfilId(self:perfilId)
 
     //Se tudo ocorreu bem, retorna os dados via Json
     if lRet
@@ -870,8 +871,48 @@ wsmethod GET V3ID wsreceive fields wsservice Perfis
         //Ou retorna o erro encontrado durante o processamento
         SetRestFault(oApiAdapter:GetCode(), oApiAdapter:GetMessage())
         lRet := .F.
-   endif
-   //faz a desalocação de objetos e arrays utilizados
-   oApiAdapter:DeActivate()
-   oApiAdapter := nil
+    endif
+    //faz a desalocação de objetos e arrays utilizados
+    oApiAdapter:DeActivate()
+    oApiAdapter := nil
+return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} POST V3ROOT
+    Cria um perfil para o microblog usando FwBaseAdapterV2
+@type   method
+
+@author josimar.assuncao
+@since  29.04.2021
+/*/
+//-------------------------------------------------------------------
+wsmethod POST V3ROOT wsreceive fields wsservice Perfis
+    local oApiAdapter as object
+    local lRet  as logical
+
+    default self:fields    := ""
+
+    //PerfisBaseAdapterApi será a classe que implementa fornecer os dados para o WS
+    // O primeiro parametro indica que iremos tratar o método GET
+    oApiAdapter := PerfisBaseAdapterApi():buildPostOne()
+
+    // SetFields indica os campos que serão retornados via querystring
+    oApiAdapter:SetFields(self:Fields)
+
+    // Compartilha o body da requisição
+    oApiAdapter:SetContent(self:GetContent())
+
+    // Esse método irá processar as informações
+    lRet := oApiAdapter:PostPerfil()
+
+    if lRet
+        self:SetResponse(oApiAdapter:jPostResponse:ToJson())
+    else
+        self:SetResponse(oApiAdapter:jPostResponse:ToJson())
+        SetRestFault(400, oApiAdapter:jPostResponse:ToJson(), , 400)
+    endif
+
+    //faz a desalocação de objetos e arrays utilizados
+    oApiAdapter:DeActivate()
+    oApiAdapter := nil
 return lRet
